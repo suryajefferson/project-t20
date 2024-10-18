@@ -1,280 +1,1266 @@
-# importing necessary modules
-
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-import pandas as pd
-setting up a custom Chrome browser for testing, specifiying to the Chrome executable and ChromeDriver, then configuring the browser to use this custom setup. Once everything is initialized, it launches Chrome and navigates to the ESPN Cricinfo page.
-chrome_test_path ="D:\\Webscraping\\chrome-win64\\chrome-win64\\chrome.exe"                                                    # custom chrome path (the testing Chrome)
-
-chromedriver_path = "D:\\Webscraping\\chromedriver-win64\\chromedriver.exe"                                                    # chromedriver Path
-
-# Set ChromeOptions to use the specific Chrome binary
-chrome_options = Options()
-chrome_options.binary_location = chrome_test_path
-
-# Initialize the ChromeDriver with the custom binary and service
-service = Service(executable_path=chromedriver_path)
-driver = webdriver.Chrome(service=service, options=chrome_options)
-
-
-website = 'https://www.espncricinfo.com/series/icc-men-s-t20-world-cup-2024-1411166/match-schedule-fixtures-and-results'
-driver.get(website)
-
-extracting specific match details from a webpage using Selenium. It retrieves:
-
-- `team1`: The name of the first team.
-- `team2`: The name of the second team.
-- `results`: The match result.
-- `loc`: The match location (after processing the text to extract the relevant part).
-- `dates`: The date of the match.
-
-Each element is found using its corresponding XPath, and `.text` is used to extract the text content.
-team1 =  driver.find_element(By.XPATH, '//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p').text
-team2 =  driver.find_element(By.XPATH, '//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p').text
-results = driver.find_element(By.XPATH, '//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/p/span').text
-loc =    driver.find_element(By.XPATH, '//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[1]/div/span/div').text.split('•')[1].split(',')[0]
-dates = driver.find_element(By.XPATH, '//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[1]').text
-
-The `print` statement outputs the following message with obtained :`team1` `team2` `loc` `dates` `results`
-
-
-print(f'The match between {team1} VS {team2} was held in {loc} |{dates}|  where {results}' )
-Setting up a 10-second wait to ensure elements are present before interaction and iterating through indices 1 to 9, dynamically creating XPath expressions for each index:
-
-- `team1_xpath`: Finds the first team's name.
-- `team2_xpath`: Finds the second team's name.
-- `result_xpath`: Finds the match result.
-- `location_xpath`: Finds the match location (processed to extract the relevant part).
-- `date_xpath`: Finds the match date.
-
-For each index, it waits until the elements are present, extracts their text, and prints the details. If an error occurs, an error message is printed for the current index.
-wait = WebDriverWait(driver, 10)                                                                                                # Wait for the element to appear (up to 10 seconds)
-
-
-for i in range(1, 10):
-    try:
-        # Use f-string to dynamically insert the index in the XPath
-        team1_xpath  = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p'
-        team2_xpath  = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p'
-        result_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/p/span'
-        location_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[1]/div/span/div'
-        date_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[1]'
-
-        # Wait until the element is present
-        team1_element  = wait.until(EC.presence_of_element_located((By.XPATH, team1_xpath)))
-        team2_element  = wait.until(EC.presence_of_element_located((By.XPATH, team2_xpath)))
-        result_element = wait.until(EC.presence_of_element_located((By.XPATH, result_xpath)))
-        date_element   = wait.until(EC.presence_of_element_located((By.XPATH, date_xpath)))
-        location_element = wait.until(EC.presence_of_element_located((By.XPATH, location_xpath)))
-        location_element = location_element.text.split('•')[1].split(',')[0]
-
-        print(f'{team1_element.text} | {team2_element.text} | {result_element.text} | {location_element} | {date_element.text} ')
-
-
-    except Exception as e:
-        print(f"Error occurred while processing index {i}: {e}")
-
-Extracting match details from a webpage using a loop with dynamically generated XPath expressions. Key points include:
-
-- **Data Collection**: Capturing team names, match results, locations, and dates.
-- **Dynamic XPaths**: Using indexed XPaths to handle multiple matches.
-- **Exception Handling**: Managing `TimeoutException` and general errors to stop the loop when needed.
-- **Data Storage**: Organizing collected information into lists and creating a dictionary for further use.
-wait = WebDriverWait(driver, 10)
-
-team_1 = []
-team_2 = []
-winner = []
-won_by = [] 
-match_id = []
-location = []
-date = []
-
-
-i = 1 
-
-while True: 
-    try:
-
-        team1_xpath  = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p'
-        team2_xpath  = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p'
-        result_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/p/span'
-        location_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[1]/div/span/div'
-        date_xpath = f'//*[@id="main-container"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[1]'
-
-        team1_element  = wait.until(EC.presence_of_element_located((By.XPATH, team1_xpath)))
-        team2_element  = wait.until(EC.presence_of_element_located((By.XPATH, team2_xpath)))
-        result_element = wait.until(EC.presence_of_element_located((By.XPATH, result_xpath)))
-        date_element   = wait.until(EC.presence_of_element_located((By.XPATH, date_xpath)))
-        location_element = wait.until(EC.presence_of_element_located((By.XPATH, location_xpath)))
-        location_element = location_element.text.split('•')[1].split(',')[0]
-
-        split = result_element.text.split('won')
-        winner_element = split[0]
-        won_by_element = split[-1].split('by ')[-1]
-
-        if date_element.text != '':
-            date_temp = date_element.text
-
-
-        team_1.append(team1_element.text)
-        team_2.append(team2_element.text)
-        winner.append(winner_element)
-        won_by.append(won_by_element)
-        match_id.append(i)
-        date.append(date_temp)
-        location.append(location_element)
-        
-        i += 1 
-
-    except TimeoutException:
-        print(f"Finished processing up to index {i-1}. No more elements found.")
-        break 
-
-    except Exception as e:
-        print(f"Error occurred while processing index {i}: {e}")
-        break  
-
-
-# driver.quit()
-
-dictionary = {'match_id': match_id, 'date': date , 'team_1': team_1, 'team_2': team_2, 'winner': winner, 'won_by': won_by, 'location' : location}
-Converting the dictionary into a Pandas DataFrame named `df_matches`
-df_matches = pd.DataFrame(dictionary)
-displaying the last 15 rows of the DataFrame df_matches
-df_matches[-15:]
-Saving the DataFrame `df_matches` to a CSV file named `matches_dim.csv` without including row indices
-df_matches.to_csv('matches_dim.csv', index=False)
-#### Batting and bowling tables
-The script is setting up a custom Chrome browser to scrape data from ESPN Cricinfo. It is opening the match schedule page, handling any overlays, and collecting scorecard links. It is then iterating through these links to extract detailed batting and bowling statistics for each match, including team names, player performances, and match outcomes. The collected data is being organized into dictionaries for both batting and bowling stats, preparing it for further analysis.
-
-chrome_test_path ="D:\\Webscraping\\chrome-win64\\chrome-win64\\chrome.exe"                                                    # custom chrome path (the testing Chrome)
-
-chromedriver_path = "D:\\Webscraping\\chromedriver-win64\\chromedriver.exe"                                                    # chromedriver Path
-
-# Set ChromeOptions to use the specific Chrome binary
-chrome_options = Options()
-chrome_options.binary_location = chrome_test_path
-
-# Initialize the ChromeDriver with the custom binary and service
-service = Service(executable_path=chromedriver_path)
-driver = webdriver.Chrome(service=service, options=chrome_options)
-
-bat_match_id = []; bat_versus = []; batting_team = []; batsmen = []; out = []; runs_scored = []; balls = []; fours_scored = []; sixes_scored = []; sr = []; order = []
-bowl_match_id = []; bowl_versus = []; bowling_team = []; bowler = []; overs = []; maidens = []; runs_given = []; wickets = []; economy = []; zeros = []; fours_given = []; sixes_given = []; wides = []; noballs = []
-
-
-
-website = 'https://www.espncricinfo.com/series/icc-men-s-t20-world-cup-2024-1411166/match-schedule-fixtures-and-results'
-driver.get(website)
-
-
-# Handle overlays or pop-ups that may block clicks
-try:
-    close_button = WebDriverWait(driver, 25).until(
-        EC.element_to_be_clickable((By.XPATH, '//*[@id="wzrk-cancel"]'))
-    )
-    close_button.click()  # Close the pop-up
-except Exception as e:
-    print(f"No overlay or pop-up to close: {e}")
-
-
-# scorecard_links = driver.find_elements(By.XPATH, '//div[@class="ds-grow ds-px-4 ds-border-r ds-border-line-default-translucent"]')
-full_table = driver.find_element(By.XPATH, '//div[@class="ds-w-full ds-bg-fill-content-prime ds-overflow-hidden ds-rounded-xl ds-border ds-border-line"]')
-scorecard_details = full_table.find_elements(By.CLASS_NAME, "ds-no-tap-higlight")
-
-scorecard_links = []
-for link in scorecard_details:
-    href_value = link.get_attribute('href')
-    scorecard_links.append(href_value)
-
-
-
-for id,i in enumerate(scorecard_links):
-    driver.get(i)
-
-    try:
-        batting_tables = WebDriverWait(driver, 10).until( # Wait until all tables are present on the page (or until 10 seconds timeout)
-        EC.presence_of_all_elements_located((By.XPATH, '//table[@class="ds-w-full ds-table ds-table-md ds-table-auto  ci-scorecard-table"]')))
-        
-        bowling_tables =  WebDriverWait(driver, 10).until( # Wait until all tables are present on the page (or until 10 seconds timeout)
-        EC.presence_of_all_elements_located((By.XPATH, '//table[@class="ds-w-full ds-table ds-table-md ds-table-auto "]')))
-
-        x_vs_y = driver.find_element(By.TAG_NAME, 'h1').text.split(',')[0]
-        teams = driver.find_elements(By.XPATH, '//span[@class="ds-text-title-xs ds-font-bold ds-capitalize"]')
-    except TimeoutException:
-        continue
-
-
-    # batting
-    
-    h= 0
-
-    for batting_table in batting_tables:
-        body = batting_table.find_element(By.TAG_NAME, 'tbody')
-        multiple_tr = body.find_elements(By.CSS_SELECTOR, 'tr[class= ""]')[:-2]
-        i = 1
-
-        for tr in multiple_tr:
-            bat_match_id.append(id+1)
-            bat_versus.append(x_vs_y)
-            batting_team.append(teams[h].text)
-            order.append(i)
-            batsmen.append(tr.find_element(By.XPATH, './td[1]').text)
-            out.append(tr.find_element(By.XPATH, './td[2]').text)
-            runs_scored.append(tr.find_element(By.XPATH, './td[3]').text)
-            balls.append(tr.find_element(By.XPATH, './td[4]').text)    
-            fours_scored.append(tr.find_element(By.XPATH, './td[6]').text)
-            sixes_scored.append(tr.find_element(By.XPATH, './td[7]').text)
-            sr.append(tr.find_element(By.XPATH, './td[8]').text)
-
-            i += 1
-        h = 1
-    batting_dict = {'match_id':bat_match_id, 'versus':bat_versus, 'batting_team':batting_team, 'order':order, 'batsmen': batsmen, 'out':out ,'runs_scored':runs_scored, 'balls':balls, 'fours_scored':fours_scored, 'sixes_scored':sixes_scored, 'sr':sr}
-
-
-    # bowling
-    q = 1
-
-    for bowling_table in bowling_tables:
-        body = bowling_table.find_element(By.TAG_NAME, 'tbody')
-        multiple_tr = body.find_elements(By.CSS_SELECTOR, 'tr[class= ""]')
-
-        for tr in multiple_tr:
-            bowl_match_id.append(id+1)
-            bowl_versus.append(x_vs_y)
-            try: 
-                bowling_team.append(teams[q].text)
-            except:
-                bowling_team.append('NULL')
-            bowler.append (tr.find_element(By.XPATH, './td[1]').text)
-            overs.append  (tr.find_element(By.XPATH, './td[2]').text)
-            maidens.append(tr.find_element(By.XPATH, './td[3]').text)
-            runs_given.append   (tr.find_element(By.XPATH, './td[4]').text)
-            wickets.append(tr.find_element(By.XPATH, './td[5]').text)
-            economy.append(tr.find_element(By.XPATH, './td[6]').text)
-            zeros.append  (tr.find_element(By.XPATH, './td[7]').text)
-            fours_given.append  (tr.find_element(By.XPATH, './td[8]').text)
-            sixes_given.append  (tr.find_element(By.XPATH, './td[9]').text)
-            wides.append  (tr.find_element(By.XPATH, './td[10]').text)
-            noballs.append(tr.find_element(By.XPATH, './td[11]').text)
-
-        q = 0
-    bowling_dict = {'match_id':bowl_match_id, 'versus':bowl_versus, 'bowling_team':bowling_team, 'bowler':bowler, 'overs':overs, 'maidens':maidens, 'runs_given': runs_given, 'wickets':wickets, 'economy':economy, 'zeros': zeros, 'fours_given': fours_given, 'sixes_given':sixes_given, 'wides':wides, 'noballs':noballs}    
-
-
-# driver.quit()
-Converting the dictionary into a Pandas DataFrame named `bowling_df` and diaplaying the DataFrame
-bowling_df = pd.DataFrame(bowling_dict)
-bowling_df
-Converting the dictionary into a Pandas DataFrame named `batting_df` and diaplaying the DataFrame
-batting_df = pd.DataFrame(batting_dict)
-batting_df
-Saving the DataFrame `bowling_df`, `batting_df` to a CSV files named `bowling_fact.csv` ,`batting_fact.csv` respectively without including row indices
-bowling_df.to_csv('bowling_fact.csv', index=False)
-batting_df.to_csv('batting_fact.csv', index=False)
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "importing necessary modules"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from selenium import webdriver\n",
+    "from selenium.webdriver.chrome.service import Service\n",
+    "from selenium.webdriver.chrome.options import Options\n",
+    "from selenium.webdriver.common.by import By\n",
+    "from selenium.webdriver.support.ui import WebDriverWait\n",
+    "from selenium.webdriver.support import expected_conditions as EC\n",
+    "from selenium.common.exceptions import TimeoutException\n",
+    "import pandas as pd"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "setting up a custom Chrome browser for testing, specifiying to the Chrome executable and ChromeDriver, then configuring the browser to use this custom setup. Once everything is initialized, it launches Chrome and navigates to the ESPN Cricinfo page."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "chrome_test_path =\"D:\\\\Webscraping\\\\chrome-win64\\\\chrome-win64\\\\chrome.exe\"                                                    # custom chrome path (the testing Chrome)\n",
+    "\n",
+    "chromedriver_path = \"D:\\\\Webscraping\\\\chromedriver-win64\\\\chromedriver.exe\"                                                    # chromedriver Path\n",
+    "\n",
+    "# Set ChromeOptions to use the specific Chrome binary\n",
+    "chrome_options = Options()\n",
+    "chrome_options.binary_location = chrome_test_path\n",
+    "\n",
+    "# Initialize the ChromeDriver with the custom binary and service\n",
+    "service = Service(executable_path=chromedriver_path)\n",
+    "driver = webdriver.Chrome(service=service, options=chrome_options)\n",
+    "\n",
+    "\n",
+    "website = 'https://www.espncricinfo.com/series/icc-men-s-t20-world-cup-2024-1411166/match-schedule-fixtures-and-results'\n",
+    "driver.get(website)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "extracting specific match details from a webpage using Selenium. It retrieves:\n",
+    "\n",
+    "- `team1`: The name of the first team.\n",
+    "- `team2`: The name of the second team.\n",
+    "- `results`: The match result.\n",
+    "- `loc`: The match location (after processing the text to extract the relevant part).\n",
+    "- `dates`: The date of the match.\n",
+    "\n",
+    "Each element is found using its corresponding XPath, and `.text` is used to extract the text content."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "team1 =  driver.find_element(By.XPATH, '//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p').text\n",
+    "team2 =  driver.find_element(By.XPATH, '//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p').text\n",
+    "results = driver.find_element(By.XPATH, '//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/p/span').text\n",
+    "loc =    driver.find_element(By.XPATH, '//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[2]/a/div/div/div[1]/div/span/div').text.split('•')[1].split(',')[0]\n",
+    "dates = driver.find_element(By.XPATH, '//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[1]/div/div[1]').text\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The `print` statement outputs the following message with obtained :`team1` `team2` `loc` `dates` `results`\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 43,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The match between CAN VS USA was held in  Dallas |Sun, 02 Jun '24|  where U.S.A. won by 7 wickets (with 14 balls remaining)\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(f'The match between {team1} VS {team2} was held in {loc} |{dates}|  where {results}' )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Setting up a 10-second wait to ensure elements are present before interaction and iterating through indices 1 to 9, dynamically creating XPath expressions for each index:\n",
+    "\n",
+    "- `team1_xpath`: Finds the first team's name.\n",
+    "- `team2_xpath`: Finds the second team's name.\n",
+    "- `result_xpath`: Finds the match result.\n",
+    "- `location_xpath`: Finds the match location (processed to extract the relevant part).\n",
+    "- `date_xpath`: Finds the match date.\n",
+    "\n",
+    "For each index, it waits until the elements are present, extracts their text, and prints the details. If an error occurs, an error message is printed for the current index."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "CAN | USA | U.S.A. won by 7 wickets (with 14 balls remaining) |  Dallas | Sun, 02 Jun '24 \n",
+      "PNG | WI | West Indies won by 5 wickets (with 6 balls remaining) |  Providence |  \n",
+      "OMA | NAM | Match tied (Namibia won the Super Over) |  Bridgetown | Mon, 03 Jun '24 \n",
+      "SL | SA | South Africa won by 6 wickets (with 22 balls remaining) |  New York |  \n",
+      "AFG | UGA | Afghanistan won by 125 runs |  Providence | Tue, 04 Jun '24 \n",
+      "SCOT | ENG | No result |  Bridgetown |  \n",
+      "NEP | NED | Netherlands won by 6 wickets (with 8 balls remaining) |  Dallas |  \n",
+      "IRE | IND | India won by 8 wickets (with 46 balls remaining) |  New York | Wed, 05 Jun '24 \n",
+      "PNG | UGA | Uganda won by 3 wickets (with 10 balls remaining) |  Providence | Thu, 06 Jun '24 \n"
+     ]
+    }
+   ],
+   "source": [
+    "wait = WebDriverWait(driver, 10)                                                                                                # Wait for the element to appear (up to 10 seconds)\n",
+    "\n",
+    "\n",
+    "for i in range(1, 10):\n",
+    "    try:\n",
+    "        # Use f-string to dynamically insert the index in the XPath\n",
+    "        team1_xpath  = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p'\n",
+    "        team2_xpath  = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p'\n",
+    "        result_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/p/span'\n",
+    "        location_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[1]/div/span/div'\n",
+    "        date_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[1]'\n",
+    "\n",
+    "        # Wait until the element is present\n",
+    "        team1_element  = wait.until(EC.presence_of_element_located((By.XPATH, team1_xpath)))\n",
+    "        team2_element  = wait.until(EC.presence_of_element_located((By.XPATH, team2_xpath)))\n",
+    "        result_element = wait.until(EC.presence_of_element_located((By.XPATH, result_xpath)))\n",
+    "        date_element   = wait.until(EC.presence_of_element_located((By.XPATH, date_xpath)))\n",
+    "        location_element = wait.until(EC.presence_of_element_located((By.XPATH, location_xpath)))\n",
+    "        location_element = location_element.text.split('•')[1].split(',')[0]\n",
+    "\n",
+    "        print(f'{team1_element.text} | {team2_element.text} | {result_element.text} | {location_element} | {date_element.text} ')\n",
+    "\n",
+    "\n",
+    "    except Exception as e:\n",
+    "        print(f\"Error occurred while processing index {i}: {e}\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Extracting match details from a webpage using a loop with dynamically generated XPath expressions. Key points include:\n",
+    "\n",
+    "- **Data Collection**: Capturing team names, match results, locations, and dates.\n",
+    "- **Dynamic XPaths**: Using indexed XPaths to handle multiple matches.\n",
+    "- **Exception Handling**: Managing `TimeoutException` and general errors to stop the loop when needed.\n",
+    "- **Data Storage**: Organizing collected information into lists and creating a dictionary for further use."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Finished processing up to index 55. No more elements found.\n"
+     ]
+    }
+   ],
+   "source": [
+    "wait = WebDriverWait(driver, 10)\n",
+    "\n",
+    "team_1 = []\n",
+    "team_2 = []\n",
+    "winner = []\n",
+    "won_by = [] \n",
+    "match_id = []\n",
+    "location = []\n",
+    "date = []\n",
+    "\n",
+    "\n",
+    "i = 1 \n",
+    "\n",
+    "while True: \n",
+    "    try:\n",
+    "\n",
+    "        team1_xpath  = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[1]/div[1]/p'\n",
+    "        team2_xpath  = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[2]/div/div[2]/div[1]/p'\n",
+    "        result_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/p/span'\n",
+    "        location_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[2]/a/div/div/div[1]/div/span/div'\n",
+    "        date_xpath = f'//*[@id=\"main-container\"]/div[5]/div/div[4]/div[1]/div[1]/div/div/div/div[{i}]/div/div[1]'\n",
+    "\n",
+    "        team1_element  = wait.until(EC.presence_of_element_located((By.XPATH, team1_xpath)))\n",
+    "        team2_element  = wait.until(EC.presence_of_element_located((By.XPATH, team2_xpath)))\n",
+    "        result_element = wait.until(EC.presence_of_element_located((By.XPATH, result_xpath)))\n",
+    "        date_element   = wait.until(EC.presence_of_element_located((By.XPATH, date_xpath)))\n",
+    "        location_element = wait.until(EC.presence_of_element_located((By.XPATH, location_xpath)))\n",
+    "        location_element = location_element.text.split('•')[1].split(',')[0]\n",
+    "\n",
+    "        split = result_element.text.split('won')\n",
+    "        winner_element = split[0]\n",
+    "        won_by_element = split[-1].split('by ')[-1]\n",
+    "\n",
+    "        if date_element.text != '':\n",
+    "            date_temp = date_element.text\n",
+    "\n",
+    "\n",
+    "        team_1.append(team1_element.text)\n",
+    "        team_2.append(team2_element.text)\n",
+    "        winner.append(winner_element)\n",
+    "        won_by.append(won_by_element)\n",
+    "        match_id.append(i)\n",
+    "        date.append(date_temp)\n",
+    "        location.append(location_element)\n",
+    "        \n",
+    "        i += 1 \n",
+    "\n",
+    "    except TimeoutException:\n",
+    "        print(f\"Finished processing up to index {i-1}. No more elements found.\")\n",
+    "        break \n",
+    "\n",
+    "    except Exception as e:\n",
+    "        print(f\"Error occurred while processing index {i}: {e}\")\n",
+    "        break  \n",
+    "\n",
+    "\n",
+    "# driver.quit()\n",
+    "\n",
+    "dictionary = {'match_id': match_id, 'date': date , 'team_1': team_1, 'team_2': team_2, 'winner': winner, 'won_by': won_by, 'location' : location}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Converting the dictionary into a Pandas DataFrame named `df_matches`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_matches = pd.DataFrame(dictionary)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "displaying the last 15 rows of the DataFrame df_matches"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 54,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>match_id</th>\n",
+       "      <th>date</th>\n",
+       "      <th>team_1</th>\n",
+       "      <th>team_2</th>\n",
+       "      <th>winner</th>\n",
+       "      <th>won_by</th>\n",
+       "      <th>location</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>40</th>\n",
+       "      <td>41</td>\n",
+       "      <td>Wed, 19 Jun '24</td>\n",
+       "      <td>SA</td>\n",
+       "      <td>USA</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>18 runs</td>\n",
+       "      <td>North Sound</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>41</th>\n",
+       "      <td>42</td>\n",
+       "      <td>Thu, 20 Jun '24</td>\n",
+       "      <td>WI</td>\n",
+       "      <td>ENG</td>\n",
+       "      <td>England</td>\n",
+       "      <td>8 wickets (with 15 balls remaining)</td>\n",
+       "      <td>Gros Islet</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>42</th>\n",
+       "      <td>43</td>\n",
+       "      <td>Thu, 20 Jun '24</td>\n",
+       "      <td>IND</td>\n",
+       "      <td>AFG</td>\n",
+       "      <td>India</td>\n",
+       "      <td>47 runs</td>\n",
+       "      <td>Bridgetown</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>43</th>\n",
+       "      <td>44</td>\n",
+       "      <td>Fri, 21 Jun '24</td>\n",
+       "      <td>BAN</td>\n",
+       "      <td>AUS</td>\n",
+       "      <td>Australia</td>\n",
+       "      <td>28 runs (DLS method)</td>\n",
+       "      <td>North Sound</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>44</th>\n",
+       "      <td>45</td>\n",
+       "      <td>Fri, 21 Jun '24</td>\n",
+       "      <td>SA</td>\n",
+       "      <td>ENG</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>7 runs</td>\n",
+       "      <td>Gros Islet</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>45</th>\n",
+       "      <td>46</td>\n",
+       "      <td>Sat, 22 Jun '24</td>\n",
+       "      <td>USA</td>\n",
+       "      <td>WI</td>\n",
+       "      <td>West Indies</td>\n",
+       "      <td>9 wickets (with 55 balls remaining)</td>\n",
+       "      <td>Bridgetown</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>46</th>\n",
+       "      <td>47</td>\n",
+       "      <td>Sat, 22 Jun '24</td>\n",
+       "      <td>IND</td>\n",
+       "      <td>BAN</td>\n",
+       "      <td>India</td>\n",
+       "      <td>50 runs</td>\n",
+       "      <td>North Sound</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>47</th>\n",
+       "      <td>48</td>\n",
+       "      <td>Sun, 23 Jun '24</td>\n",
+       "      <td>AFG</td>\n",
+       "      <td>AUS</td>\n",
+       "      <td>Afghanistan</td>\n",
+       "      <td>21 runs</td>\n",
+       "      <td>Kingstown</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>48</th>\n",
+       "      <td>49</td>\n",
+       "      <td>Sun, 23 Jun '24</td>\n",
+       "      <td>USA</td>\n",
+       "      <td>ENG</td>\n",
+       "      <td>England</td>\n",
+       "      <td>10 wickets (with 62 balls remaining)</td>\n",
+       "      <td>Bridgetown</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>49</th>\n",
+       "      <td>50</td>\n",
+       "      <td>Mon, 24 Jun '24</td>\n",
+       "      <td>WI</td>\n",
+       "      <td>SA</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>3 wickets (with 5 balls remaining) (DLS method)</td>\n",
+       "      <td>North Sound</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>50</th>\n",
+       "      <td>51</td>\n",
+       "      <td>Mon, 24 Jun '24</td>\n",
+       "      <td>IND</td>\n",
+       "      <td>AUS</td>\n",
+       "      <td>India</td>\n",
+       "      <td>24 runs</td>\n",
+       "      <td>Gros Islet</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>51</th>\n",
+       "      <td>52</td>\n",
+       "      <td>Tue, 25 Jun '24</td>\n",
+       "      <td>AFG</td>\n",
+       "      <td>BAN</td>\n",
+       "      <td>Afghanistan</td>\n",
+       "      <td>8 runs (DLS method)</td>\n",
+       "      <td>Kingstown</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>52</th>\n",
+       "      <td>53</td>\n",
+       "      <td>Thu, 27 Jun '24</td>\n",
+       "      <td>AFG</td>\n",
+       "      <td>SA</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>9 wickets (with 67 balls remaining)</td>\n",
+       "      <td>Tarouba</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>53</th>\n",
+       "      <td>54</td>\n",
+       "      <td>Thu, 27 Jun '24</td>\n",
+       "      <td>IND</td>\n",
+       "      <td>ENG</td>\n",
+       "      <td>India</td>\n",
+       "      <td>68 runs</td>\n",
+       "      <td>Providence</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>54</th>\n",
+       "      <td>55</td>\n",
+       "      <td>Sat, 29 Jun '24</td>\n",
+       "      <td>IND</td>\n",
+       "      <td>SA</td>\n",
+       "      <td>India</td>\n",
+       "      <td>7 runs</td>\n",
+       "      <td>Bridgetown</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "    match_id             date team_1 team_2         winner  \\\n",
+       "40        41  Wed, 19 Jun '24     SA    USA  South Africa    \n",
+       "41        42  Thu, 20 Jun '24     WI    ENG       England    \n",
+       "42        43  Thu, 20 Jun '24    IND    AFG         India    \n",
+       "43        44  Fri, 21 Jun '24    BAN    AUS     Australia    \n",
+       "44        45  Fri, 21 Jun '24     SA    ENG  South Africa    \n",
+       "45        46  Sat, 22 Jun '24    USA     WI   West Indies    \n",
+       "46        47  Sat, 22 Jun '24    IND    BAN         India    \n",
+       "47        48  Sun, 23 Jun '24    AFG    AUS   Afghanistan    \n",
+       "48        49  Sun, 23 Jun '24    USA    ENG       England    \n",
+       "49        50  Mon, 24 Jun '24     WI     SA  South Africa    \n",
+       "50        51  Mon, 24 Jun '24    IND    AUS         India    \n",
+       "51        52  Tue, 25 Jun '24    AFG    BAN   Afghanistan    \n",
+       "52        53  Thu, 27 Jun '24    AFG     SA  South Africa    \n",
+       "53        54  Thu, 27 Jun '24    IND    ENG         India    \n",
+       "54        55  Sat, 29 Jun '24    IND     SA         India    \n",
+       "\n",
+       "                                             won_by      location  \n",
+       "40                                          18 runs   North Sound  \n",
+       "41              8 wickets (with 15 balls remaining)    Gros Islet  \n",
+       "42                                          47 runs    Bridgetown  \n",
+       "43                             28 runs (DLS method)   North Sound  \n",
+       "44                                           7 runs    Gros Islet  \n",
+       "45              9 wickets (with 55 balls remaining)    Bridgetown  \n",
+       "46                                          50 runs   North Sound  \n",
+       "47                                          21 runs     Kingstown  \n",
+       "48             10 wickets (with 62 balls remaining)    Bridgetown  \n",
+       "49  3 wickets (with 5 balls remaining) (DLS method)   North Sound  \n",
+       "50                                          24 runs    Gros Islet  \n",
+       "51                              8 runs (DLS method)     Kingstown  \n",
+       "52              9 wickets (with 67 balls remaining)       Tarouba  \n",
+       "53                                          68 runs    Providence  \n",
+       "54                                           7 runs    Bridgetown  "
+      ]
+     },
+     "execution_count": 54,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df_matches[-15:]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Saving the DataFrame `df_matches` to a CSV file named `matches_dim.csv` without including row indices"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 48,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_matches.to_csv('matches_dim.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Batting and bowling tables"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The script is setting up a custom Chrome browser to scrape data from ESPN Cricinfo. It is opening the match schedule page, handling any overlays, and collecting scorecard links. It is then iterating through these links to extract detailed batting and bowling statistics for each match, including team names, player performances, and match outcomes. The collected data is being organized into dictionaries for both batting and bowling stats, preparing it for further analysis."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "chrome_test_path =\"D:\\\\Webscraping\\\\chrome-win64\\\\chrome-win64\\\\chrome.exe\"                                                    # custom chrome path (the testing Chrome)\n",
+    "\n",
+    "chromedriver_path = \"D:\\\\Webscraping\\\\chromedriver-win64\\\\chromedriver.exe\"                                                    # chromedriver Path\n",
+    "\n",
+    "# Set ChromeOptions to use the specific Chrome binary\n",
+    "chrome_options = Options()\n",
+    "chrome_options.binary_location = chrome_test_path\n",
+    "\n",
+    "# Initialize the ChromeDriver with the custom binary and service\n",
+    "service = Service(executable_path=chromedriver_path)\n",
+    "driver = webdriver.Chrome(service=service, options=chrome_options)\n",
+    "\n",
+    "bat_match_id = []; bat_versus = []; batting_team = []; batsmen = []; out = []; runs_scored = []; balls = []; fours_scored = []; sixes_scored = []; sr = []; order = []\n",
+    "bowl_match_id = []; bowl_versus = []; bowling_team = []; bowler = []; overs = []; maidens = []; runs_given = []; wickets = []; economy = []; zeros = []; fours_given = []; sixes_given = []; wides = []; noballs = []\n",
+    "\n",
+    "\n",
+    "\n",
+    "website = 'https://www.espncricinfo.com/series/icc-men-s-t20-world-cup-2024-1411166/match-schedule-fixtures-and-results'\n",
+    "driver.get(website)\n",
+    "\n",
+    "\n",
+    "# Handle overlays or pop-ups that may block clicks\n",
+    "try:\n",
+    "    close_button = WebDriverWait(driver, 25).until(\n",
+    "        EC.element_to_be_clickable((By.XPATH, '//*[@id=\"wzrk-cancel\"]'))\n",
+    "    )\n",
+    "    close_button.click()  # Close the pop-up\n",
+    "except Exception as e:\n",
+    "    print(f\"No overlay or pop-up to close: {e}\")\n",
+    "\n",
+    "\n",
+    "# scorecard_links = driver.find_elements(By.XPATH, '//div[@class=\"ds-grow ds-px-4 ds-border-r ds-border-line-default-translucent\"]')\n",
+    "full_table = driver.find_element(By.XPATH, '//div[@class=\"ds-w-full ds-bg-fill-content-prime ds-overflow-hidden ds-rounded-xl ds-border ds-border-line\"]')\n",
+    "scorecard_details = full_table.find_elements(By.CLASS_NAME, \"ds-no-tap-higlight\")\n",
+    "\n",
+    "scorecard_links = []\n",
+    "for link in scorecard_details:\n",
+    "    href_value = link.get_attribute('href')\n",
+    "    scorecard_links.append(href_value)\n",
+    "\n",
+    "\n",
+    "\n",
+    "for id,i in enumerate(scorecard_links):\n",
+    "    driver.get(i)\n",
+    "\n",
+    "    try:\n",
+    "        batting_tables = WebDriverWait(driver, 10).until( # Wait until all tables are present on the page (or until 10 seconds timeout)\n",
+    "        EC.presence_of_all_elements_located((By.XPATH, '//table[@class=\"ds-w-full ds-table ds-table-md ds-table-auto  ci-scorecard-table\"]')))\n",
+    "        \n",
+    "        bowling_tables =  WebDriverWait(driver, 10).until( # Wait until all tables are present on the page (or until 10 seconds timeout)\n",
+    "        EC.presence_of_all_elements_located((By.XPATH, '//table[@class=\"ds-w-full ds-table ds-table-md ds-table-auto \"]')))\n",
+    "\n",
+    "        x_vs_y = driver.find_element(By.TAG_NAME, 'h1').text.split(',')[0]\n",
+    "        teams = driver.find_elements(By.XPATH, '//span[@class=\"ds-text-title-xs ds-font-bold ds-capitalize\"]')\n",
+    "    except TimeoutException:\n",
+    "        continue\n",
+    "\n",
+    "\n",
+    "    # batting\n",
+    "    \n",
+    "    h= 0\n",
+    "\n",
+    "    for batting_table in batting_tables:\n",
+    "        body = batting_table.find_element(By.TAG_NAME, 'tbody')\n",
+    "        multiple_tr = body.find_elements(By.CSS_SELECTOR, 'tr[class= \"\"]')[:-2]\n",
+    "        i = 1\n",
+    "\n",
+    "        for tr in multiple_tr:\n",
+    "            bat_match_id.append(id+1)\n",
+    "            bat_versus.append(x_vs_y)\n",
+    "            batting_team.append(teams[h].text)\n",
+    "            order.append(i)\n",
+    "            batsmen.append(tr.find_element(By.XPATH, './td[1]').text)\n",
+    "            out.append(tr.find_element(By.XPATH, './td[2]').text)\n",
+    "            runs_scored.append(tr.find_element(By.XPATH, './td[3]').text)\n",
+    "            balls.append(tr.find_element(By.XPATH, './td[4]').text)    \n",
+    "            fours_scored.append(tr.find_element(By.XPATH, './td[6]').text)\n",
+    "            sixes_scored.append(tr.find_element(By.XPATH, './td[7]').text)\n",
+    "            sr.append(tr.find_element(By.XPATH, './td[8]').text)\n",
+    "\n",
+    "            i += 1\n",
+    "        h = 1\n",
+    "    batting_dict = {'match_id':bat_match_id, 'versus':bat_versus, 'batting_team':batting_team, 'order':order, 'batsmen': batsmen, 'out':out ,'runs_scored':runs_scored, 'balls':balls, 'fours_scored':fours_scored, 'sixes_scored':sixes_scored, 'sr':sr}\n",
+    "\n",
+    "\n",
+    "    # bowling\n",
+    "    q = 1\n",
+    "\n",
+    "    for bowling_table in bowling_tables:\n",
+    "        body = bowling_table.find_element(By.TAG_NAME, 'tbody')\n",
+    "        multiple_tr = body.find_elements(By.CSS_SELECTOR, 'tr[class= \"\"]')\n",
+    "\n",
+    "        for tr in multiple_tr:\n",
+    "            bowl_match_id.append(id+1)\n",
+    "            bowl_versus.append(x_vs_y)\n",
+    "            try: \n",
+    "                bowling_team.append(teams[q].text)\n",
+    "            except:\n",
+    "                bowling_team.append('NULL')\n",
+    "            bowler.append (tr.find_element(By.XPATH, './td[1]').text)\n",
+    "            overs.append  (tr.find_element(By.XPATH, './td[2]').text)\n",
+    "            maidens.append(tr.find_element(By.XPATH, './td[3]').text)\n",
+    "            runs_given.append   (tr.find_element(By.XPATH, './td[4]').text)\n",
+    "            wickets.append(tr.find_element(By.XPATH, './td[5]').text)\n",
+    "            economy.append(tr.find_element(By.XPATH, './td[6]').text)\n",
+    "            zeros.append  (tr.find_element(By.XPATH, './td[7]').text)\n",
+    "            fours_given.append  (tr.find_element(By.XPATH, './td[8]').text)\n",
+    "            sixes_given.append  (tr.find_element(By.XPATH, './td[9]').text)\n",
+    "            wides.append  (tr.find_element(By.XPATH, './td[10]').text)\n",
+    "            noballs.append(tr.find_element(By.XPATH, './td[11]').text)\n",
+    "\n",
+    "        q = 0\n",
+    "    bowling_dict = {'match_id':bowl_match_id, 'versus':bowl_versus, 'bowling_team':bowling_team, 'bowler':bowler, 'overs':overs, 'maidens':maidens, 'runs_given': runs_given, 'wickets':wickets, 'economy':economy, 'zeros': zeros, 'fours_given': fours_given, 'sixes_given':sixes_given, 'wides':wides, 'noballs':noballs}    \n",
+    "\n",
+    "\n",
+    "# driver.quit()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Converting the dictionary into a Pandas DataFrame named `bowling_df` and diaplaying the DataFrame"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>match_id</th>\n",
+       "      <th>versus</th>\n",
+       "      <th>bowling_team</th>\n",
+       "      <th>bowler</th>\n",
+       "      <th>overs</th>\n",
+       "      <th>maidens</th>\n",
+       "      <th>runs_given</th>\n",
+       "      <th>wickets</th>\n",
+       "      <th>economy</th>\n",
+       "      <th>zeros</th>\n",
+       "      <th>fours_given</th>\n",
+       "      <th>sixes_given</th>\n",
+       "      <th>wides</th>\n",
+       "      <th>noballs</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>United States Of America</td>\n",
+       "      <td>Ali Khan</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>41</td>\n",
+       "      <td>1</td>\n",
+       "      <td>10.25</td>\n",
+       "      <td>11</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>United States Of America</td>\n",
+       "      <td>Saurabh Netravalkar</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "      <td>16</td>\n",
+       "      <td>0</td>\n",
+       "      <td>8.00</td>\n",
+       "      <td>3</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>United States Of America</td>\n",
+       "      <td>Harmeet Singh</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>27</td>\n",
+       "      <td>1</td>\n",
+       "      <td>6.75</td>\n",
+       "      <td>11</td>\n",
+       "      <td>3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>United States Of America</td>\n",
+       "      <td>Jasdeep Singh</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0</td>\n",
+       "      <td>24</td>\n",
+       "      <td>0</td>\n",
+       "      <td>8.00</td>\n",
+       "      <td>7</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>United States Of America</td>\n",
+       "      <td>Shadley van Schalkwyk</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0</td>\n",
+       "      <td>34</td>\n",
+       "      <td>0</td>\n",
+       "      <td>11.33</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>590</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>India</td>\n",
+       "      <td>Jasprit Bumrah</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>18</td>\n",
+       "      <td>2</td>\n",
+       "      <td>4.50</td>\n",
+       "      <td>14</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>591</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>India</td>\n",
+       "      <td>Axar Patel</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>49</td>\n",
+       "      <td>1</td>\n",
+       "      <td>12.25</td>\n",
+       "      <td>8</td>\n",
+       "      <td>5</td>\n",
+       "      <td>3</td>\n",
+       "      <td>2</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>592</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>India</td>\n",
+       "      <td>Kuldeep Yadav</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>45</td>\n",
+       "      <td>0</td>\n",
+       "      <td>11.25</td>\n",
+       "      <td>6</td>\n",
+       "      <td>3</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>593</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>India</td>\n",
+       "      <td>Hardik Pandya</td>\n",
+       "      <td>3</td>\n",
+       "      <td>0</td>\n",
+       "      <td>20</td>\n",
+       "      <td>3</td>\n",
+       "      <td>6.66</td>\n",
+       "      <td>9</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>594</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>India</td>\n",
+       "      <td>Ravindra Jadeja</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>12</td>\n",
+       "      <td>0</td>\n",
+       "      <td>12.00</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>595 rows × 14 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "     match_id                 versus              bowling_team  \\\n",
+       "0           1       U.S.A. vs Canada  United States Of America   \n",
+       "1           1       U.S.A. vs Canada  United States Of America   \n",
+       "2           1       U.S.A. vs Canada  United States Of America   \n",
+       "3           1       U.S.A. vs Canada  United States Of America   \n",
+       "4           1       U.S.A. vs Canada  United States Of America   \n",
+       "..        ...                    ...                       ...   \n",
+       "590        55  India vs South Africa                     India   \n",
+       "591        55  India vs South Africa                     India   \n",
+       "592        55  India vs South Africa                     India   \n",
+       "593        55  India vs South Africa                     India   \n",
+       "594        55  India vs South Africa                     India   \n",
+       "\n",
+       "                    bowler overs maidens runs_given wickets economy zeros  \\\n",
+       "0                 Ali Khan     4       0         41       1   10.25    11   \n",
+       "1      Saurabh Netravalkar     2       0         16       0    8.00     3   \n",
+       "2            Harmeet Singh     4       0         27       1    6.75    11   \n",
+       "3            Jasdeep Singh     3       0         24       0    8.00     7   \n",
+       "4    Shadley van Schalkwyk     3       0         34       0   11.33     1   \n",
+       "..                     ...   ...     ...        ...     ...     ...   ...   \n",
+       "590         Jasprit Bumrah     4       0         18       2    4.50    14   \n",
+       "591             Axar Patel     4       0         49       1   12.25     8   \n",
+       "592          Kuldeep Yadav     4       0         45       0   11.25     6   \n",
+       "593          Hardik Pandya     3       0         20       3    6.66     9   \n",
+       "594        Ravindra Jadeja     1       0         12       0   12.00     0   \n",
+       "\n",
+       "    fours_given sixes_given wides noballs  \n",
+       "0             5           2     2       0  \n",
+       "1             2           0     0       0  \n",
+       "2             3           1     0       0  \n",
+       "3             4           0     0       0  \n",
+       "4             1           2     0       0  \n",
+       "..          ...         ...   ...     ...  \n",
+       "590           2           0     0       0  \n",
+       "591           5           3     2       0  \n",
+       "592           3           3     0       0  \n",
+       "593           1           1     1       1  \n",
+       "594           0           1     0       0  \n",
+       "\n",
+       "[595 rows x 14 columns]"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "bowling_df = pd.DataFrame(bowling_dict)\n",
+    "bowling_df"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Converting the dictionary into a Pandas DataFrame named `batting_df` and diaplaying the DataFrame"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>match_id</th>\n",
+       "      <th>versus</th>\n",
+       "      <th>batting_team</th>\n",
+       "      <th>order</th>\n",
+       "      <th>batsmen</th>\n",
+       "      <th>out</th>\n",
+       "      <th>runs_scored</th>\n",
+       "      <th>balls</th>\n",
+       "      <th>fours_scored</th>\n",
+       "      <th>sixes_scored</th>\n",
+       "      <th>sr</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>Canada</td>\n",
+       "      <td>1</td>\n",
+       "      <td>Aaron Johnson</td>\n",
+       "      <td>c Kumar b Harmeet Singh</td>\n",
+       "      <td>23</td>\n",
+       "      <td>16</td>\n",
+       "      <td>5</td>\n",
+       "      <td>0</td>\n",
+       "      <td>143.75</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>Canada</td>\n",
+       "      <td>2</td>\n",
+       "      <td>Navneet Dhaliwal</td>\n",
+       "      <td>c Jasdeep Singh b Anderson</td>\n",
+       "      <td>61</td>\n",
+       "      <td>44</td>\n",
+       "      <td>6</td>\n",
+       "      <td>3</td>\n",
+       "      <td>138.63</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>Canada</td>\n",
+       "      <td>3</td>\n",
+       "      <td>Pargat Singh</td>\n",
+       "      <td>run out (Jasdeep Singh/†Patel)</td>\n",
+       "      <td>5</td>\n",
+       "      <td>7</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>71.42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>Canada</td>\n",
+       "      <td>4</td>\n",
+       "      <td>Nicholas Kirton</td>\n",
+       "      <td>c Anderson b Ali Khan</td>\n",
+       "      <td>51</td>\n",
+       "      <td>31</td>\n",
+       "      <td>3</td>\n",
+       "      <td>2</td>\n",
+       "      <td>164.51</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>1</td>\n",
+       "      <td>U.S.A. vs Canada</td>\n",
+       "      <td>Canada</td>\n",
+       "      <td>5</td>\n",
+       "      <td>Shreyas Movva †</td>\n",
+       "      <td>not out</td>\n",
+       "      <td>32</td>\n",
+       "      <td>16</td>\n",
+       "      <td>2</td>\n",
+       "      <td>2</td>\n",
+       "      <td>200.00</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>847</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>6</td>\n",
+       "      <td>David Miller</td>\n",
+       "      <td>c Yadav b Pandya</td>\n",
+       "      <td>21</td>\n",
+       "      <td>17</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>123.52</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>848</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>7</td>\n",
+       "      <td>Marco Jansen</td>\n",
+       "      <td>b Bumrah</td>\n",
+       "      <td>2</td>\n",
+       "      <td>4</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>50.00</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>849</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>8</td>\n",
+       "      <td>Keshav Maharaj</td>\n",
+       "      <td>not out</td>\n",
+       "      <td>2</td>\n",
+       "      <td>7</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>28.57</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>850</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>9</td>\n",
+       "      <td>Kagiso Rabada</td>\n",
+       "      <td>c Yadav b Pandya</td>\n",
+       "      <td>4</td>\n",
+       "      <td>3</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>133.33</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>851</th>\n",
+       "      <td>55</td>\n",
+       "      <td>India vs South Africa</td>\n",
+       "      <td>South Africa</td>\n",
+       "      <td>10</td>\n",
+       "      <td>Anrich Nortje</td>\n",
+       "      <td>not out</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>100.00</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>852 rows × 11 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "     match_id                 versus  batting_team  order            batsmen  \\\n",
+       "0           1       U.S.A. vs Canada        Canada      1     Aaron Johnson    \n",
+       "1           1       U.S.A. vs Canada        Canada      2  Navneet Dhaliwal    \n",
+       "2           1       U.S.A. vs Canada        Canada      3      Pargat Singh    \n",
+       "3           1       U.S.A. vs Canada        Canada      4   Nicholas Kirton    \n",
+       "4           1       U.S.A. vs Canada        Canada      5    Shreyas Movva †   \n",
+       "..        ...                    ...           ...    ...                ...   \n",
+       "847        55  India vs South Africa  South Africa      6      David Miller    \n",
+       "848        55  India vs South Africa  South Africa      7      Marco Jansen    \n",
+       "849        55  India vs South Africa  South Africa      8    Keshav Maharaj    \n",
+       "850        55  India vs South Africa  South Africa      9     Kagiso Rabada    \n",
+       "851        55  India vs South Africa  South Africa     10     Anrich Nortje    \n",
+       "\n",
+       "                                out runs_scored balls fours_scored  \\\n",
+       "0           c Kumar b Harmeet Singh          23    16            5   \n",
+       "1        c Jasdeep Singh b Anderson          61    44            6   \n",
+       "2    run out (Jasdeep Singh/†Patel)           5     7            0   \n",
+       "3             c Anderson b Ali Khan          51    31            3   \n",
+       "4                           not out          32    16            2   \n",
+       "..                              ...         ...   ...          ...   \n",
+       "847                c Yadav b Pandya          21    17            1   \n",
+       "848                        b Bumrah           2     4            0   \n",
+       "849                         not out           2     7            0   \n",
+       "850                c Yadav b Pandya           4     3            1   \n",
+       "851                         not out           1     1            0   \n",
+       "\n",
+       "    sixes_scored      sr  \n",
+       "0              0  143.75  \n",
+       "1              3  138.63  \n",
+       "2              0   71.42  \n",
+       "3              2  164.51  \n",
+       "4              2  200.00  \n",
+       "..           ...     ...  \n",
+       "847            1  123.52  \n",
+       "848            0   50.00  \n",
+       "849            0   28.57  \n",
+       "850            0  133.33  \n",
+       "851            0  100.00  \n",
+       "\n",
+       "[852 rows x 11 columns]"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "batting_df = pd.DataFrame(batting_dict)\n",
+    "batting_df"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Saving the DataFrame `bowling_df`, `batting_df` to a CSV files named `bowling_fact.csv` ,`batting_fact.csv` respectively without including row indices"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "bowling_df.to_csv('bowling_fact.csv', index=False)\n",
+    "batting_df.to_csv('batting_fact.csv', index=False)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "adv_environment",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.9"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
