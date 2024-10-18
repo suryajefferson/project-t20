@@ -1,0 +1,56 @@
+match_id,date,team_1,team_2,winner,won_by,location
+1,"Sun, 02 Jun '24",CAN,USA,U.S.A. ,7 wickets (with 14 balls remaining), Dallas
+2,"Sun, 02 Jun '24",PNG,WI,West Indies ,5 wickets (with 6 balls remaining), Providence
+3,"Mon, 03 Jun '24",OMA,NAM,Match tied (Namibia , the Super Over), Bridgetown
+4,"Mon, 03 Jun '24",SL,SA,South Africa ,6 wickets (with 22 balls remaining), New York
+5,"Tue, 04 Jun '24",AFG,UGA,Afghanistan ,125 runs, Providence
+6,"Tue, 04 Jun '24",SCOT,ENG,No result,No result, Bridgetown
+7,"Tue, 04 Jun '24",NEP,NED,Netherlands ,6 wickets (with 8 balls remaining), Dallas
+8,"Wed, 05 Jun '24",IRE,IND,India ,8 wickets (with 46 balls remaining), New York
+9,"Thu, 06 Jun '24",PNG,UGA,Uganda ,3 wickets (with 10 balls remaining), Providence
+10,"Thu, 06 Jun '24",AUS,OMA,Australia ,39 runs, Bridgetown
+11,"Thu, 06 Jun '24",PAK,USA,Match tied (U.S.A. , the Super Over), Dallas
+12,"Fri, 07 Jun '24",NAM,SCOT,Scotland ,5 wickets (with 9 balls remaining), Bridgetown
+13,"Fri, 07 Jun '24",CAN,IRE,Canada ,12 runs, New York
+14,"Sat, 08 Jun '24",AFG,NZ,Afghanistan ,84 runs, Providence
+15,"Sat, 08 Jun '24",SL,BAN,Bangladesh ,2 wickets (with 6 balls remaining), Dallas
+16,"Sat, 08 Jun '24",NED,SA,South Africa ,4 wickets (with 7 balls remaining), New York
+17,"Sat, 08 Jun '24",AUS,ENG,Australia ,36 runs, Bridgetown
+18,"Sun, 09 Jun '24",WI,UGA,West Indies ,134 runs, Providence
+19,"Sun, 09 Jun '24",IND,PAK,India ,6 runs, New York
+20,"Sun, 09 Jun '24",OMA,SCOT,Scotland ,7 wickets (with 41 balls remaining), North Sound
+21,"Mon, 10 Jun '24",SA,BAN,South Africa ,4 runs, New York
+22,"Tue, 11 Jun '24",CAN,PAK,Pakistan ,7 wickets (with 15 balls remaining), New York
+23,"Wed, 12 Jun '24",Nepal,Sri Lanka,Match abandoned without a ball bowled,Match abandoned without a ball bowled, Lauderhill
+24,"Wed, 12 Jun '24",NAM,AUS,Australia ,9 wickets (with 86 balls remaining), North Sound
+25,"Wed, 12 Jun '24",USA,IND,India ,7 wickets (with 10 balls remaining), New York
+26,"Thu, 13 Jun '24",WI,NZ,West Indies ,13 runs, Tarouba
+27,"Thu, 13 Jun '24",BAN,NED,Bangladesh ,25 runs, Kingstown
+28,"Fri, 14 Jun '24",OMA,ENG,England ,8 wickets (with 101 balls remaining), North Sound
+29,"Fri, 14 Jun '24",PNG,AFG,Afghanistan ,7 wickets (with 29 balls remaining), Tarouba
+30,"Fri, 14 Jun '24",United States Of America,Ireland,Match abandoned without a ball bowled,Match abandoned without a ball bowled, Lauderhill
+31,"Sat, 15 Jun '24",SA,NEP,South Africa ,1 run, Kingstown
+32,"Sat, 15 Jun '24",UGA,NZ,New Zealand ,9 wickets (with 88 balls remaining), Tarouba
+33,"Sat, 15 Jun '24",Canada,India,Match abandoned without a ball bowled,Match abandoned without a ball bowled, Lauderhill
+34,"Sat, 15 Jun '24",ENG,NAM,England ,41 runs (DLS method), North Sound
+35,"Sun, 16 Jun '24",SCOT,AUS,Australia ,5 wickets (with 2 balls remaining), Gros Islet
+36,"Sun, 16 Jun '24",IRE,PAK,Pakistan ,3 wickets (with 7 balls remaining), Lauderhill
+37,"Mon, 17 Jun '24",BAN,NEP,Bangladesh ,21 runs, Kingstown
+38,"Mon, 17 Jun '24",SL,NED,Sri Lanka ,83 runs, Gros Islet
+39,"Mon, 17 Jun '24",PNG,NZ,New Zealand ,7 wickets (with 46 balls remaining), Tarouba
+40,"Tue, 18 Jun '24",WI,AFG,West Indies ,104 runs, Gros Islet
+41,"Wed, 19 Jun '24",SA,USA,South Africa ,18 runs, North Sound
+42,"Thu, 20 Jun '24",WI,ENG,England ,8 wickets (with 15 balls remaining), Gros Islet
+43,"Thu, 20 Jun '24",IND,AFG,India ,47 runs, Bridgetown
+44,"Fri, 21 Jun '24",BAN,AUS,Australia ,28 runs (DLS method), North Sound
+45,"Fri, 21 Jun '24",SA,ENG,South Africa ,7 runs, Gros Islet
+46,"Sat, 22 Jun '24",USA,WI,West Indies ,9 wickets (with 55 balls remaining), Bridgetown
+47,"Sat, 22 Jun '24",IND,BAN,India ,50 runs, North Sound
+48,"Sun, 23 Jun '24",AFG,AUS,Afghanistan ,21 runs, Kingstown
+49,"Sun, 23 Jun '24",USA,ENG,England ,10 wickets (with 62 balls remaining), Bridgetown
+50,"Mon, 24 Jun '24",WI,SA,South Africa ,3 wickets (with 5 balls remaining) (DLS method), North Sound
+51,"Mon, 24 Jun '24",IND,AUS,India ,24 runs, Gros Islet
+52,"Tue, 25 Jun '24",AFG,BAN,Afghanistan ,8 runs (DLS method), Kingstown
+53,"Thu, 27 Jun '24",AFG,SA,South Africa ,9 wickets (with 67 balls remaining), Tarouba
+54,"Thu, 27 Jun '24",IND,ENG,India ,68 runs, Providence
+55,"Sat, 29 Jun '24",IND,SA,India ,7 runs, Bridgetown
